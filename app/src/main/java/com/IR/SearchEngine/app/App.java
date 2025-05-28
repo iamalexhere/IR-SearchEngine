@@ -3,17 +3,262 @@
  */
 package com.IR.SearchEngine.app;
 
+import com.IR.SearchEngine.data.Document;
+import com.IR.SearchEngine.preprocessing.IPreprocessor;
+import com.IR.SearchEngine.preprocessing.Preprocessor;
+import com.IR.SearchEngine.util.DocumentLoader;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
 /**
  * Main application class for the Search Engine.
  * This class serves as the entry point for the application.
  * It initializes the search engine components and handles the main execution flow.
  */
 public class App {
-    public String getGreeting() {
-        return "Hello World!";
+    private final DocumentLoader documentLoader;
+    private final IPreprocessor preprocessor;
+    
+    // Paths to document and query resources - using project root as base
+    private static final String DOCUMENTS_PATH = getResourcePath("documents");
+    private static final String QUERIES_PATH = getResourcePath("queries");
+    
+    /**
+     * Gets the absolute path to a resource directory.
+     * This handles the different working directory when running from Gradle vs IDE.
+     * 
+     * @param resourceName Name of the resource directory
+     * @return Absolute path to the resource directory
+     */
+    private static String getResourcePath(String resourceName) {
+        // Try multiple possible locations for the resources
+        String[] possiblePaths = {
+            "app/src/main/resources/" + resourceName,  // From project root
+            "src/main/resources/" + resourceName,     // From app directory
+            "main/resources/" + resourceName,         // From src directory
+            "resources/" + resourceName,              // From main directory
+            "../resources/" + resourceName,           // From current directory going up
+            "../../resources/" + resourceName          // From current directory going up twice
+        };
+        
+        // Find the first path that exists
+        for (String path : possiblePaths) {
+            if (Files.exists(Paths.get(path)) && Files.isDirectory(Paths.get(path))) {
+                return path;
+            }
+        }
+        
+        // If none of the paths exist, return the first one and let the error handling deal with it
+        return possiblePaths[0];
     }
-
+    
+    /**
+     * Constructor that initializes the search engine components.
+     */
+    public App() {
+        this.documentLoader = new DocumentLoader();
+        this.preprocessor = new Preprocessor();
+        
+        // Ensure resource directories exist
+        ensureResourceDirectoriesExist();
+    }
+    
+    /**
+     * Ensures that the resource directories for documents and queries exist.
+     * Creates them if they don't exist.
+     */
+    private void ensureResourceDirectoriesExist() {
+        try {
+            // Ensure documents directory exists
+            Path documentsPath = Paths.get(DOCUMENTS_PATH);
+            if (!Files.exists(documentsPath)) {
+                Files.createDirectories(documentsPath);
+                System.out.println("Created documents directory: " + documentsPath.toAbsolutePath());
+            }
+            
+            // Ensure queries directory exists
+            Path queriesPath = Paths.get(QUERIES_PATH);
+            if (!Files.exists(queriesPath)) {
+                Files.createDirectories(queriesPath);
+                System.out.println("Created queries directory: " + queriesPath.toAbsolutePath());
+            }
+        } catch (IOException e) {
+            System.err.println("Error creating resource directories: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Loads documents from the default documents directory and preprocesses them.
+     * 
+     * @return List of preprocessed documents
+     */
+    public List<Document> loadAndPreprocessDocuments() {
+        try {
+            Path path = Paths.get(DOCUMENTS_PATH);
+            List<Document> documents = documentLoader.loadTextDocumentsFromDirectory(path);
+            System.out.println("Loaded " + documents.size() + " documents from " + path.toAbsolutePath());
+            
+            // Preprocess the documents
+            List<Document> preprocessedDocuments = preprocessor.preprocessDocuments(documents);
+            System.out.println("Preprocessed " + preprocessedDocuments.size() + " documents");
+            
+            return preprocessedDocuments;
+        } catch (IOException e) {
+            System.err.println("Error loading documents: " + e.getMessage());
+            return List.of();
+        }
+    }
+    
+    /**
+     * Loads queries from the default queries directory.
+     * 
+     * @return List of query strings
+     */
+    public List<String> loadQueries() {
+        List<String> queries = new ArrayList<>();
+        try {
+            Path path = Paths.get(QUERIES_PATH);
+            Files.walk(path)
+                .filter(Files::isRegularFile)
+                .filter(p -> p.toString().endsWith(".txt"))
+                .forEach(p -> {
+                    try {
+                        String query = Files.readString(p, StandardCharsets.UTF_8).trim();
+                        if (!query.isEmpty()) {
+                            queries.add(query);
+                        }
+                    } catch (IOException e) {
+                        System.err.println("Error reading query file: " + p + ": " + e.getMessage());
+                    }
+                });
+            System.out.println("Loaded " + queries.size() + " queries from " + path.toAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("Error loading queries: " + e.getMessage());
+        }
+        return queries;
+    }
+    
+    /**
+     * Preprocesses a query string.
+     * 
+     * @param query Query string
+     * @return Preprocessed query string
+     */
+    public String preprocessQuery(String query) {
+        return preprocessor.preprocessQuery(query);
+    }
+    
+    /**
+     * Demonstrates the document loading and preprocessing functionality.
+     * 
+     * @param args Command line arguments
+     */
     public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+        App app = new App();
+        Scanner scanner = new Scanner(System.in);
+        
+        // Display actual paths for better debugging
+        Path documentsAbsPath = Paths.get(DOCUMENTS_PATH).toAbsolutePath();
+        Path queriesAbsPath = Paths.get(QUERIES_PATH).toAbsolutePath();
+        
+        // Interactive mode for document loading and query preprocessing
+        System.out.println("=== Search Engine Demo ===");
+        System.out.println("Documents directory: " + documentsAbsPath);
+        System.out.println("Queries directory: " + queriesAbsPath);
+        System.out.println();
+        System.out.println("1. Load and preprocess documents");
+        System.out.println("2. Load and preprocess queries");
+        System.out.println("3. Preprocess a custom query");
+        System.out.println("4. Exit");
+        
+        boolean running = true;
+        while (running) {
+            System.out.print("\nEnter your choice (1-4): ");
+            String choice = scanner.nextLine();
+            
+            switch (choice) {
+                case "1":
+                    // Load and preprocess documents
+                    List<Document> documents = app.loadAndPreprocessDocuments();
+                    displayDocumentInfo(documents);
+                    break;
+                    
+                case "2":
+                    // Load and process queries
+                    List<String> queries = app.loadQueries();
+                    if (!queries.isEmpty()) {
+                        System.out.println("\nQuery Information:");
+                        for (int i = 0; i < Math.min(5, queries.size()); i++) {
+                            String originalQuery = queries.get(i);
+                            String processedQuery = app.preprocessQuery(originalQuery);
+                            System.out.println("Query " + (i + 1) + ":");
+                            System.out.println("  Original: " + originalQuery);
+                            System.out.println("  Processed: " + processedQuery);
+                            System.out.println();
+                        }
+                        
+                        if (queries.size() > 5) {
+                            System.out.println("... and " + (queries.size() - 5) + " more queries");
+                        }
+                    }
+                    break;
+                    
+                case "3":
+                    // Process custom query
+                    System.out.print("Enter query: ");
+                    String query = scanner.nextLine();
+                    String preprocessedQuery = app.preprocessQuery(query);
+                    System.out.println("Original query: " + query);
+                    System.out.println("Preprocessed query: " + preprocessedQuery);
+                    break;
+                    
+                case "4":
+                    running = false;
+                    System.out.println("Exiting...");
+                    break;
+                    
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+        
+        scanner.close();
+        
+        // Shutdown the document loader to release resources
+        app.documentLoader.shutdown();
+    }
+    
+    /**
+     * Helper method to display information about documents.
+     * 
+     * @param documents List of documents to display information about
+     */
+    private static void displayDocumentInfo(List<Document> documents) {
+        if (!documents.isEmpty()) {
+            System.out.println("\nDocument Information:");
+            for (int i = 0; i < Math.min(5, documents.size()); i++) {
+                Document doc = documents.get(i);
+                System.out.println("Document " + (i + 1) + ":");
+                System.out.println("  ID: " + doc.getId());
+                System.out.println("  Title: " + doc.getTitle());
+                System.out.println("  Length: " + doc.getLength() + " terms");
+                System.out.println("  Term Count: " + doc.getTermFrequencies().size() + " unique terms");
+                System.out.println();
+            }
+            
+            if (documents.size() > 5) {
+                System.out.println("... and " + (documents.size() - 5) + " more documents");
+            }
+        }
     }
 }
