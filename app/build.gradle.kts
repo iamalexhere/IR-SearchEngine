@@ -34,7 +34,7 @@ java {
 
 application {
     // Define the main class for the application.
-    mainClass = "com.IR.SearchEngine.App"
+    mainClass = "com.IR.SearchEngine.app.App"
 }
 
 tasks.named<Test>("test") {
