@@ -3,6 +3,11 @@
  */
 package com.IR.SearchEngine.app;
 
+/**
+ * Main application class for the Search Engine.
+ * This class serves as the entry point for the application.
+ * It initializes the search engine components and handles the main execution flow.
+ */
 public class App {
     public String getGreeting() {
         return "Hello World!";
