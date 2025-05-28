@@ -23,6 +23,16 @@ dependencies {
 
     // This dependency is used by the application.
     implementation(libs.guava)
+    
+    // Apache Lucene dependencies for indexing and search
+    implementation("org.apache.lucene:lucene-core:10.2.1")
+    implementation("org.apache.lucene:lucene-analyzers-common:8.11.4")
+    implementation("org.apache.lucene:lucene-queryparser:10.2.1")
+    implementation("org.apache.lucene:lucene-highlighter:10.2.1")
+
+    
+    // Apache OpenNLP for natural language processing
+    implementation("org.apache.opennlp:opennlp-tools:2.5.4")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -34,7 +44,7 @@ java {
 
 application {
     // Define the main class for the application.
-    mainClass = "com.IR.SearchEngine.App"
+    mainClass = "com.IR.SearchEngine.app.App"
 }
 
 tasks.named<Test>("test") {
