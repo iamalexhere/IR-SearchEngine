@@ -1,4 +1,6 @@
-Document 7: Immersive Technologies in Medicine: The Role of Virtual and Augmented Reality in Training and Therapy
+Immersive Technologies in Medicine: The Role of Virtual and Augmented Reality in Training and Therapy
+
+
 7.1. Overview of Virtual Reality (VR) and Augmented Reality (AR) in Healthcare
 Immersive technologies, primarily Virtual Reality (VR) and Augmented Reality (AR), are increasingly being recognized for their potential to transform various aspects of healthcare delivery, medical education, diagnostics, and therapeutic interventions.  
 Virtual Reality (VR) creates a completely immersive digital environment that replaces a user's real-world surroundings. Users, typically wearing a headset, can interact with this computer-generated world, experiencing sights and sounds that simulate reality or create entirely new experiences.

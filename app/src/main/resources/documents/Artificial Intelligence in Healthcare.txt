@@ -1,4 +1,6 @@
-Document 2: Artificial Intelligence in Healthcare: Transforming Diagnostics, Treatment, and Drug Discovery
+Artificial Intelligence in Healthcare: Transforming Diagnostics, Treatment, and Drug Discovery
+
+
 2.1. Overview of Artificial Intelligence (AI) in the Medical Field
 Artificial Intelligence (AI) in the context of healthcare refers to the application of computational systems capable of performing tasks that traditionally require human intelligence, such as learning, problem-solving, and decision-making. It integrates principles from computer science, statistics, and engineering to analyze complex medical data and derive actionable insights. Core AI concepts pivotal to its healthcare applications include Machine Learning (ML), where systems learn from data without being explicitly programmed; Deep Learning, a subset of ML that uses neural networks with multiple layers to analyze intricate patterns in large datasets; and Natural Language Processing (NLP), which enables computers to understand and process human language.  
 While the conceptual underpinnings of AI in medicine date back several decades, its practical application and impact have accelerated dramatically in recent years. This surge is largely attributable to the exponential growth in available healthcare data (from sources like electronic health records, medical imaging, and genomic sequencing) and significant advancements in computational power, which allow for the training and deployment of sophisticated AI models.

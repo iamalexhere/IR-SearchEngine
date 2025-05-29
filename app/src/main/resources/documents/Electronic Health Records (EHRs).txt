@@ -1,4 +1,6 @@
-Document 3: Electronic Health Records (EHRs): Foundations for Digital Health and Interoperability Challenges
+Electronic Health Records (EHRs): Foundations for Digital Health and Interoperability Challenges
+
+
 3.1. The Role and Evolution of EHRs
 Electronic Health Records (EHRs) are digital versions of patients' traditional paper charts. They provide real-time, patient-centered records that make information available instantly and securely to authorized users. An EHR typically contains a patient's medical history, diagnoses, medications, treatment plans, immunization dates, allergies, radiology images, and laboratory and test results.  
 The evolution of EHRs traces back several decades, beginning with rudimentary efforts to digitize patient information. However, the widespread adoption and sophistication of these systems have significantly increased in more recent times, notably spurred by governmental initiatives. In the United States, the Health Information Technology for Economic and Clinical Health (HITECH) Act of 2009 played a pivotal role by establishing programs to incentivize healthcare providers to adopt and demonstrate "meaningful use" of certified EHR technology. This legislation aimed to improve healthcare quality, safety, and efficiency through the promotion of health IT.  

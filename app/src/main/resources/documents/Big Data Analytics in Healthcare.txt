@@ -1,4 +1,6 @@
-Document 8: Big Data Analytics in Healthcare: Unlocking Insights for Population Health and Personalized Care
+Big Data Analytics in Healthcare: Unlocking Insights for Population Health and Personalized Care
+
+
 8.1. The Scope and Definition of Big Data in Healthcare
 Big Data in healthcare refers to the complex and rapidly growing aggregation of health-related datasets that are too large and multifaceted to be effectively managed and analyzed using traditional data processing tools. These datasets are drawn from a wide array of sources, including Electronic Health Records (EHRs), genomic and proteomic sequencing, medical imaging archives, pharmaceutical research, patient surveys and registries, claims and billing activities, public health records, and increasingly, data from wearable devices and mobile health applications.  
 The term "Big Data" is often characterized by the "Vs":
