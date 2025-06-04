@@ -4,9 +4,12 @@
 package com.IR.SearchEngine.app;
 
 import com.IR.SearchEngine.data.Document;
+import com.IR.SearchEngine.data.DocumentScore;
+import com.IR.SearchEngine.indexing.Indexer;
 import com.IR.SearchEngine.preprocessing.IPreprocessor;
 import com.IR.SearchEngine.preprocessing.Preprocessor;
 import com.IR.SearchEngine.util.DocumentLoader;
+import com.IR.SearchEngine.model.BM25;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,6 +31,8 @@ import java.util.Scanner;
 public class App {
     private final DocumentLoader documentLoader;
     private final IPreprocessor preprocessor;
+    private final Indexer indexer;
+    private final BM25 bm25;
     
     // Paths to document and query resources - using project root as base
     private static final String DOCUMENTS_PATH = getResourcePath("documents");
@@ -68,6 +73,8 @@ public class App {
     public App() {
         this.documentLoader = new DocumentLoader();
         this.preprocessor = new Preprocessor();
+        this.indexer = new Indexer();
+        this.bm25 = new BM25(indexer, (Preprocessor)preprocessor);
         
         // Ensure resource directories exist
         ensureResourceDirectoriesExist();
@@ -99,6 +106,7 @@ public class App {
     
     /**
      * Loads documents from the default documents directory and preprocesses them.
+     * Also indexes the document with Indexer
      * 
      * @return List of preprocessed documents
      */
@@ -111,6 +119,13 @@ public class App {
             // Preprocess the documents
             List<Document> preprocessedDocuments = preprocessor.preprocessDocuments(documents);
             System.out.println("Preprocessed " + preprocessedDocuments.size() + " documents");
+
+            // Index the documents
+            int indexedCount = indexer.indexDocuments(preprocessedDocuments);
+            System.out.println("Indexed " + indexedCount + " documents");
+            
+            // Initialize BM25 model after indexing
+            bm25.initialize();
             
             return preprocessedDocuments;
         } catch (IOException e) {
@@ -179,17 +194,21 @@ public class App {
         System.out.println("1. Load and preprocess documents");
         System.out.println("2. Load and preprocess queries");
         System.out.println("3. Preprocess a custom query");
-        System.out.println("4. Exit");
+        System.out.println("4. Search using BM25");
+        System.out.println("5. Exit");  
         
         boolean running = true;
+        List<Document> indexedDocuments = new ArrayList<>();  // Holds loaded/preprocessed/indexed docs
+
         while (running) {
-            System.out.print("\nEnter your choice (1-4): ");
+            System.out.print("\nEnter your choice (1-5): ");
             String choice = scanner.nextLine();
             
             switch (choice) {
                 case "1":
                     // Load and preprocess documents
                     List<Document> documents = app.loadAndPreprocessDocuments();
+                    indexedDocuments = documents;
                     displayDocumentInfo(documents);
                     break;
                     
@@ -221,8 +240,31 @@ public class App {
                     System.out.println("Original query: " + query);
                     System.out.println("Preprocessed query: " + preprocessedQuery);
                     break;
-                    
+
                 case "4":
+                    // Search using BM25
+                    if (indexedDocuments.isEmpty()) {
+                        System.out.println("No documents indexed yet. Please select option 1 to load and index documents first.");
+                        break;
+                    }
+
+                    System.out.print("Enter search query: ");
+                    String searchQuery = scanner.nextLine();
+                    String processedSearchQuery = app.preprocessQuery(searchQuery);
+                    var results = app.bm25.search(searchQuery, processedSearchQuery, 10);
+                    System.out.println("\nSearch results for query: '" + searchQuery + "'");
+
+                    if (results.getResultCount() == 0) {
+                        System.out.println("No matching documents found.");
+                    } else {
+                        int rank = 1;
+                        for (DocumentScore ds : results.getResults()) {
+                            System.out.printf("%d. %s (score: %.4f)%n", rank++, ds.getDocument().getTitle(), ds.getScore());
+                        }
+                    }
+                    break;
+
+                case "5":
                     running = false;
                     System.out.println("Exiting...");
                     break;
