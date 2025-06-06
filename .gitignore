@@ -6,3 +6,5 @@ build
 
 # Gradle build artifacts
 bin
+
+.settings
