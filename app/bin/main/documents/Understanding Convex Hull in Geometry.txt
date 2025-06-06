@@ -1,0 +1,2 @@
+Understanding Convex Hull in Geometry
+The convex hull of a set of points is the smallest convex polygon that contains all the points. It is analogous to stretching a rubber band around the outermost points. Many algorithms compute convex hulls, such as Graham scan and QuickHull, each with different time complexities. This concept serves as the foundation for many geometric operations and further computational problems.
