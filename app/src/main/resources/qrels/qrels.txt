@@ -1,0 +1,131 @@
+convex_hull_q1 Q0 The Rise of Surgical Robotics.txt 0
+convex_hull_q1 Q0 Big Data Analytics in Healthcare.txt 0
+convex_hull_q1 Q0 The Unrelenting Pursuit of Safety.txt 0
+convex_hull_q1 Q0 Legendary Drivers and Dominant Dynasties.txt 0
+convex_hull_q1 Q0 Artificial Intelligence in Healthcare.txt 0
+convex_hull_q1 Q0 Immersive Technologies in Medicine.txt 0
+convex_hull_q1 Q0 Convex Hull for Robotics Navigation.txt 2
+convex_hull_q1 Q0 Electronic Health Records (EHRs).txt 0
+convex_hull_q1 Q0 Pillars of Effective Software Design and System Architecture.txt 0
+convex_hull_q1 Q0 Discrete Mathematics, Logic, and Set Theory in Informatics Education.txt 0
+convex_hull_q1 Q0 Student Perceptions, Difficulties, and Engagement with Mathematics in Informatics.txt 0
+convex_hull_q1 Q0 The Evolution of Mathematics Curricula and Pedagogical Approaches.txt 0
+convex_hull_q1 Q0 The Rise of Aerodynamics and the Turbo Era.txt 0
+convex_hull_q1 Q0 Pattern Recognition Using Convex Hull.txt 2
+convex_hull_q1 Q0 Anticipating Needs for Evolving Informatics Disciplines.txt 0
+convex_hull_q1 Q0 Convex Hull in Computer Graphics.txt 2
+convex_hull_q1 Q0 The Genesis of Grand Prix Racing and the Dawn of Formula One.txt 0
+convex_hull_q1 Q0 Iconic Rivalries and Unforgettable Seasons.txt 0
+convex_hull_q1 Q0 Telemedicine and Remote Patient Monitoring.txt 0
+convex_hull_q1 Q0 Commercialization and Globalization Under Ecclestone.txt 0
+convex_hull_q1 Q0 Convex Hull for Collision Detection in Simulations.txt 2
+convex_hull_q1 Q0 Correlation with Career Success, Innovation, and Research in the Informatics Sector.txt 0
+convex_hull_q1 Q0 Real-World Applications of Convex Hulls.txt 2
+convex_hull_q1 Q0 Evolution of Car Design and Early Technological Leaps.txt 0
+convex_hull_q1 Q0 The Hybrid Era and the Modern Technological Landscape.txt 0
+convex_hull_q1 Q0 Understanding Convex Hull in Geometry.txt 1
+convex_hull_q1 Q0 The Cognitive Impact of Calculus and Linear Algebra on Informatics Students.txt 0
+convex_hull_q1 Q0 Convex Hull in Image Processing.txt 2
+convex_hull_q1 Q0 Wearable Technology in Healthcare.txt 0
+convex_hull_q1 Q0 Convex Hull in Optimization Problems.txt 2
+convex_hull_q1 Q0 The Role of Probability, Statistics, and Graph Theory in AI, Machine Learning, and Data Science.txt 0
+convex_hull_q1 Q0 Genomics and Precision Medicine.txt 0
+
+f1_q1 Q0 The Rise of Surgical Robotics.txt 0
+f1_q1 Q0 Big Data Analytics in Healthcare.txt 0
+f1_q1 Q0 The Unrelenting Pursuit of Safety.txt 1
+f1_q1 Q0 Legendary Drivers and Dominant Dynasties.txt 1
+f1_q1 Q0 Artificial Intelligence in Healthcare.txt 0
+f1_q1 Q0 Immersive Technologies in Medicine.txt 0
+f1_q1 Q0 Convex Hull for Robotics Navigation.txt 0
+f1_q1 Q0 Electronic Health Records (EHRs).txt 0
+f1_q1 Q0 Pillars of Effective Software Design and System Architecture.txt 0
+f1_q1 Q0 Discrete Mathematics, Logic, and Set Theory in Informatics Education.txt 0
+f1_q1 Q0 Student Perceptions, Difficulties, and Engagement with Mathematics in Informatics.txt 0
+f1_q1 Q0 The Evolution of Mathematics Curricula and Pedagogical Approaches.txt 0
+f1_q1 Q0 The Rise of Aerodynamics and the Turbo Era.txt 0
+f1_q1 Q0 Pattern Recognition Using Convex Hull.txt 0
+f1_q1 Q0 Anticipating Needs for Evolving Informatics Disciplines.txt 0
+f1_q1 Q0 Convex Hull in Computer Graphics.txt 0
+f1_q1 Q0 The Genesis of Grand Prix Racing and the Dawn of Formula One.txt 2
+f1_q1 Q0 Iconic Rivalries and Unforgettable Seasons.txt 1
+f1_q1 Q0 Telemedicine and Remote Patient Monitoring.txt 0
+f1_q1 Q0 Commercialization and Globalization Under Ecclestone.txt 0
+f1_q1 Q0 Convex Hull for Collision Detection in Simulations.txt 0
+f1_q1 Q0 Correlation with Career Success, Innovation, and Research in the Informatics Sector.txt 0
+f1_q1 Q0 Real-World Applications of Convex Hulls.txt 0
+f1_q1 Q0 Evolution of Car Design and Early Technological Leaps.txt 2
+f1_q1 Q0 The Hybrid Era and the Modern Technological Landscape.txt 0
+f1_q1 Q0 Understanding Convex Hull in Geometry.txt 0
+f1_q1 Q0 The Cognitive Impact of Calculus and Linear Algebra on Informatics Students.txt 0
+f1_q1 Q0 Convex Hull in Image Processing.txt 0
+f1_q1 Q0 Wearable Technology in Healthcare.txt 0
+f1_q1 Q0 Convex Hull in Optimization Problems.txt 0
+f1_q1 Q0 The Role of Probability, Statistics, and Graph Theory in AI, Machine Learning, and Data Science.txt 0
+f1_q1 Q0 Genomics and Precision Medicine.txt 0
+
+health_it_q1 Q0 The Rise of Surgical Robotics.txt 0
+health_it_q1 Q0 Big Data Analytics in Healthcare.txt 0
+health_it_q1 Q0 The Unrelenting Pursuit of Safety.txt 0
+health_it_q1 Q0 Legendary Drivers and Dominant Dynasties.txt 0
+health_it_q1 Q0 Artificial Intelligence in Healthcare.txt 0
+health_it_q1 Q0 Immersive Technologies in Medicine.txt 1
+health_it_q1 Q0 Convex Hull for Robotics Navigation.txt 0
+health_it_q1 Q0 Electronic Health Records (EHRs).txt 1
+health_it_q1 Q0 Pillars of Effective Software Design and System Architecture.txt 0
+health_it_q1 Q0 Discrete Mathematics, Logic, and Set Theory in Informatics Education.txt 0
+health_it_q1 Q0 Student Perceptions, Difficulties, and Engagement with Mathematics in Informatics.txt 0
+health_it_q1 Q0 The Evolution of Mathematics Curricula and Pedagogical Approaches.txt 0
+health_it_q1 Q0 The Rise of Aerodynamics and the Turbo Era.txt 0
+health_it_q1 Q0 Pattern Recognition Using Convex Hull.txt 0
+health_it_q1 Q0 Anticipating Needs for Evolving Informatics Disciplines.txt 0
+health_it_q1 Q0 Convex Hull in Computer Graphics.txt 0
+health_it_q1 Q0 The Genesis of Grand Prix Racing and the Dawn of Formula One.txt 0
+health_it_q1 Q0 Iconic Rivalries and Unforgettable Seasons.txt 0
+health_it_q1 Q0 Telemedicine and Remote Patient Monitoring.txt 2
+health_it_q1 Q0 Commercialization and Globalization Under Ecclestone.txt 0
+health_it_q1 Q0 Convex Hull for Collision Detection in Simulations.txt 0
+health_it_q1 Q0 Correlation with Career Success, Innovation, and Research in the Informatics Sector.txt 0
+health_it_q1 Q0 Real-World Applications of Convex Hulls.txt 0
+health_it_q1 Q0 Evolution of Car Design and Early Technological Leaps.txt 0
+health_it_q1 Q0 The Hybrid Era and the Modern Technological Landscape.txt 0
+health_it_q1 Q0 Understanding Convex Hull in Geometry.txt 0
+health_it_q1 Q0 The Cognitive Impact of Calculus and Linear Algebra on Informatics Students.txt 0
+health_it_q1 Q0 Convex Hull in Image Processing.txt 0
+health_it_q1 Q0 Wearable Technology in Healthcare.txt 2
+health_it_q1 Q0 Convex Hull in Optimization Problems.txt 0
+health_it_q1 Q0 The Role of Probability, Statistics, and Graph Theory in AI, Machine Learning, and Data Science.txt 0
+health_it_q1 Q0 Genomics and Precision Medicine.txt 0
+
+if_education_q1 Q0 The Rise of Surgical Robotics.txt 0
+if_education_q1 Q0 Big Data Analytics in Healthcare.txt 0
+if_education_q1 Q0 The Unrelenting Pursuit of Safety.txt 0
+if_education_q1 Q0 Legendary Drivers and Dominant Dynasties.txt 0
+if_education_q1 Q0 Artificial Intelligence in Healthcare.txt 0
+if_education_q1 Q0 Immersive Technologies in Medicine.txt 0
+if_education_q1 Q0 Convex Hull for Robotics Navigation.txt 0
+if_education_q1 Q0 Electronic Health Records (EHRs).txt 0
+if_education_q1 Q0 Pillars of Effective Software Design and System Architecture.txt 2
+if_education_q1 Q0 Discrete Mathematics, Logic, and Set Theory in Informatics Education.txt 2
+if_education_q1 Q0 Student Perceptions, Difficulties, and Engagement with Mathematics in Informatics.txt 2
+if_education_q1 Q0 The Evolution of Mathematics Curricula and Pedagogical Approaches.txt 2
+if_education_q1 Q0 The Rise of Aerodynamics and the Turbo Era.txt 0
+if_education_q1 Q0 Pattern Recognition Using Convex Hull.txt 0
+if_education_q1 Q0 Anticipating Needs for Evolving Informatics Disciplines.txt 2
+if_education_q1 Q0 Convex Hull in Computer Graphics.txt 0
+if_education_q1 Q0 The Genesis of Grand Prix Racing and the Dawn of Formula One.txt 0
+if_education_q1 Q0 Iconic Rivalries and Unforgettable Seasons.txt 0
+if_education_q1 Q0 Telemedicine and Remote Patient Monitoring.txt 0
+if_education_q1 Q0 Commercialization and Globalization Under Ecclestone.txt 0
+if_education_q1 Q0 Convex Hull for Collision Detection in Simulations.txt 0
+if_education_q1 Q0 Correlation with Career Success, Innovation, and Research in the Informatics Sector.txt 2
+if_education_q1 Q0 Real-World Applications of Convex Hulls.txt 0
+if_education_q1 Q0 Evolution of Car Design and Early Technological Leaps.txt 0
+if_education_q1 Q0 The Hybrid Era and the Modern Technological Landscape.txt 0
+if_education_q1 Q0 Understanding Convex Hull in Geometry.txt 0
+if_education_q1 Q0 The Cognitive Impact of Calculus and Linear Algebra on Informatics Students.txt 2
+if_education_q1 Q0 Convex Hull in Image Processing.txt 0
+if_education_q1 Q0 Wearable Technology in Healthcare.txt 0
+if_education_q1 Q0 Convex Hull in Optimization Problems.txt 0
+if_education_q1 Q0 The Role of Probability, Statistics, and Graph Theory in AI, Machine Learning, and Data Science.txt 2
+if_education_q1 Q0 Genomics and Precision Medicine.txt 0

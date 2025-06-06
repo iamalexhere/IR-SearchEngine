@@ -76,7 +76,7 @@ public class DocumentLoader {
         
         String content = Files.readString(filePath, StandardCharsets.UTF_8);
         String fileName = filePath.getFileName().toString();
-        String id = UUID.randomUUID().toString();
+        String id = fileName; // Use file name as ID for stability
         
         return new Document(id, fileName, content, filePath);
     }
@@ -234,7 +234,7 @@ public class DocumentLoader {
                     // Simple HTML to text conversion (a more sophisticated parser would be better in production)
                     String textContent = content.replaceAll("<[^>]*>", "");
                     String fileName = filePath.getFileName().toString();
-                    String id = UUID.randomUUID().toString();
+                    String id = fileName; // Use file name as ID for stability
                     
                     return new Document(id, fileName, textContent, filePath);
                 } catch (IOException e) {

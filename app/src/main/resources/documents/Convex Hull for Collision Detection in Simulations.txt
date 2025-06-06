@@ -1,2 +1,0 @@
-Convex Hull for Collision Detection in Simulations
-Physics engines and simulations rely on convex hulls to detect collisions between complex objects. By approximating irregular shapes with their convex hulls, the computation of intersections becomes faster and less resource-intensive. This method is especially beneficial in real-time applications such as video games and virtual reality environments where performance is critical.

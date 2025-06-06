@@ -5,11 +5,14 @@ package com.IR.SearchEngine.app;
 
 import com.IR.SearchEngine.data.Document;
 import com.IR.SearchEngine.data.DocumentScore;
+import com.IR.SearchEngine.data.QueryResult;
 import com.IR.SearchEngine.indexing.Indexer;
+import com.IR.SearchEngine.model.BM25;
+import com.IR.SearchEngine.model.IModel;
+import com.IR.SearchEngine.model.VSM;
 import com.IR.SearchEngine.preprocessing.IPreprocessor;
 import com.IR.SearchEngine.preprocessing.Preprocessor;
 import com.IR.SearchEngine.util.DocumentLoader;
-import com.IR.SearchEngine.model.BM25;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -22,6 +25,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
+import com.IR.SearchEngine.evaluation.Evaluator;
+import com.IR.SearchEngine.evaluation.GroundTruth;
+import java.util.Map;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.util.HashMap;
 
 /**
  * Main application class for the Search Engine.
@@ -32,11 +42,19 @@ public class App {
     private final DocumentLoader documentLoader;
     private final IPreprocessor preprocessor;
     private final Indexer indexer;
+    private final VSM vsm;
     private final BM25 bm25;
+    private IModel currentModel; // The currently selected retrieval model
+    private boolean documentsIndexed;
+    private GroundTruth groundTruth;
+    private Evaluator evaluator;
+    private Map<String, String> queryIdToTextMap;
     
     // Paths to document and query resources - using project root as base
     private static final String DOCUMENTS_PATH = getResourcePath("documents");
     private static final String QUERIES_PATH = getResourcePath("queries");
+    private static final String QRELS_FILE_PATH = getResourceFilePath("qrels/qrels.txt");
+    private static final String OUTPUT_PATH = getResourcePath("output");
     
     /**
      * Gets the absolute path to a resource directory.
@@ -66,18 +84,128 @@ public class App {
         // If none of the paths exist, return the first one and let the error handling deal with it
         return possiblePaths[0];
     }
-    
+
+    /**
+     * Gets the absolute path to a resource file.
+     * This handles different working directories and checks for file existence.
+     *
+     * @param resourceFileName The name of the resource file (e.g., "qrels/qrels.txt")
+     * @return Absolute path to the resource file, or a default path if not found.
+     */
+    private static String getResourceFilePath(String resourceFileName) {
+        String[] possibleBaseDirs = {
+            "app/src/main/resources/",  // From project root
+            "src/main/resources/",     // From app directory
+            "main/resources/",         // From src directory
+            "resources/",              // From main directory
+            "../resources/",           // From current directory going up one level
+            "../../resources/"          // From current directory going up two levels
+        };
+
+        for (String baseDir : possibleBaseDirs) {
+            Path filePath = Paths.get(baseDir, resourceFileName).toAbsolutePath();
+            if (Files.exists(filePath) && Files.isRegularFile(filePath)) {
+                return filePath.toString();
+            }
+        }
+
+        Path defaultPath = Paths.get(possibleBaseDirs[0], resourceFileName).toAbsolutePath();
+        System.err.println("Warning: Resource file '" + resourceFileName + "' not found in any standard location. Using default path: " + defaultPath);
+        System.err.println("Please ensure the file exists or create it at one of the expected locations, e.g., app/src/main/resources/qrels/qrels.txt");
+        return defaultPath.toString();
+    }
+
     /**
      * Constructor that initializes the search engine components.
      */
     public App() {
+        System.out.println("Initializing Search Engine...");
         this.documentLoader = new DocumentLoader();
         this.preprocessor = new Preprocessor();
         this.indexer = new Indexer();
-        this.bm25 = new BM25(indexer, (Preprocessor)preprocessor);
-        
-        // Ensure resource directories exist
+        this.documentsIndexed = false;
+
+        // Ensure resource directories exist (including for qrels)
         ensureResourceDirectoriesExist();
+        
+        // Initialize GroundTruth and load qrels
+        this.groundTruth = new GroundTruth();
+        try {
+            Path qrelsPath = Paths.get(QRELS_FILE_PATH); // QRELS_FILE_PATH is absolute
+            
+            Path qrelsParentDir = qrelsPath.getParent();
+            if (qrelsParentDir != null && !Files.exists(qrelsParentDir)) {
+                 try {
+                    Files.createDirectories(qrelsParentDir);
+                    System.out.println("Created missing parent directory for qrels: " + qrelsParentDir.toAbsolutePath());
+                 } catch (IOException ex) {
+                    System.err.println("Could not create parent directory for qrels file '" + qrelsPath.toAbsolutePath() + "': " + ex.getMessage());
+                 }
+            }
+
+            if (Files.exists(qrelsPath) && Files.isRegularFile(qrelsPath)) {
+                this.groundTruth.loadFromFile(qrelsPath);
+                System.out.println("Ground truth loaded from: " + qrelsPath.toAbsolutePath());
+            } // Closing the if statement
+        } catch (IOException e) {
+            System.err.println("Error loading ground truth: " + e.getMessage());
+            this.groundTruth = new GroundTruth(); // Initialize with empty ground truth
+            System.err.println("Initialized with empty ground truth. Evaluation might not be meaningful.");
+        }
+        this.queryIdToTextMap = loadQueries(); // Load queries and store the map
+        this.evaluator = new Evaluator(this, this.groundTruth, this.queryIdToTextMap);
+        
+        // Automatically load and index documents on startup
+        try {
+            System.out.println("Auto-indexing documents on startup...");
+            List<Document> documents = loadAndPreprocessDocuments();
+            if (documents.isEmpty()) {
+                System.out.println("Warning: No documents were indexed on startup.");
+            } else {
+                System.out.println("Auto-indexing complete. " + documents.size() + " documents are ready for search.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error during auto-indexing: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        // Export document IDs after indexing
+        exportDocumentIds();
+
+        // Export query IDs and texts after loading them
+        exportQueryIdsAndTexts();
+        
+        // Initialize VSM and BM25 models after indexing documents
+        this.vsm = new VSM(indexer, (Preprocessor) preprocessor);
+        this.vsm.initialize();
+        
+        this.bm25 = new BM25(indexer, (Preprocessor) preprocessor);
+        this.bm25.initialize();
+        
+        // Set VSM as the default model
+        this.currentModel = this.vsm;
+    }
+
+    /**
+     * Exports all indexed document IDs to a file.
+     */
+    private void exportDocumentIds() {
+        if (indexer == null || indexer.getAllDocuments().isEmpty()) {
+            System.out.println("No documents indexed, skipping export of document IDs.");
+            return;
+        }
+
+        Path outputPath = Paths.get(OUTPUT_PATH, "indexed_document_ids.txt");
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath.toFile()))) {
+            writer.write("# List of all indexed document IDs\n");
+            for (Document doc : indexer.getAllDocuments()) {
+                writer.write(doc.getId() + "\n");
+            }
+            System.out.println("Successfully exported " + indexer.getAllDocuments().size() + " document IDs to: " + outputPath.toAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("Error exporting document IDs: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**
@@ -86,81 +214,128 @@ public class App {
      */
     private void ensureResourceDirectoriesExist() {
         try {
-            // Ensure documents directory exists
-            Path documentsPath = Paths.get(DOCUMENTS_PATH);
-            if (!Files.exists(documentsPath)) {
-                Files.createDirectories(documentsPath);
-                System.out.println("Created documents directory: " + documentsPath.toAbsolutePath());
+            Path documentsDir = Paths.get(DOCUMENTS_PATH); // Path is already absolute from getResourcePath
+            if (!Files.exists(documentsDir)) {
+                Files.createDirectories(documentsDir);
+                System.out.println("Created documents directory: " + documentsDir);
             }
-            
-            // Ensure queries directory exists
-            Path queriesPath = Paths.get(QUERIES_PATH);
-            if (!Files.exists(queriesPath)) {
-                Files.createDirectories(queriesPath);
-                System.out.println("Created queries directory: " + queriesPath.toAbsolutePath());
+
+            Path queriesDir = Paths.get(QUERIES_PATH); // Path is already absolute
+            if (!Files.exists(queriesDir)) {
+                Files.createDirectories(queriesDir);
+                System.out.println("Created queries directory: " + queriesDir);
             }
+
+            Path qrelsFile = Paths.get(QRELS_FILE_PATH); // Path is already absolute
+            Path qrelsDir = qrelsFile.getParent();
+            if (qrelsDir != null && !Files.exists(qrelsDir)) {
+                Files.createDirectories(qrelsDir);
+                System.out.println("Created qrels directory: " + qrelsDir);
+            }
+
+            Path outputDir = Paths.get(OUTPUT_PATH);
+            if (!Files.exists(outputDir)) {
+                Files.createDirectories(outputDir);
+                System.out.println("Created output directory: " + outputDir);
+            }
+            // System.out.println("Resource directories ensured.");
+
         } catch (IOException e) {
-            System.err.println("Error creating resource directories: " + e.getMessage());
+            System.err.println("Error ensuring resource directories exist: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
     /**
-     * Loads documents from the default documents directory and preprocesses them.
-     * Also indexes the document with Indexer
+     * Loads documents from the default documents directory, preprocesses them, and indexes them.
      * 
-     * @return List of preprocessed documents
+     * @return List of preprocessed and indexed documents
      */
     public List<Document> loadAndPreprocessDocuments() {
         try {
             Path path = Paths.get(DOCUMENTS_PATH);
+            System.out.println("Looking for documents in: " + path.toAbsolutePath());
+            
+            if (!Files.exists(path)) {
+                System.err.println("Documents directory not found: " + path.toAbsolutePath());
+                return new ArrayList<>();
+            }
+            
+            // List all .txt files in the directory for diagnostic purposes
+            Files.list(path)
+                .filter(p -> p.toString().endsWith(".txt"))
+                .forEach(p -> System.out.println("Found file: " + p.getFileName()));
+            
             List<Document> documents = documentLoader.loadTextDocumentsFromDirectory(path);
-            System.out.println("Loaded " + documents.size() + " documents from " + path.toAbsolutePath());
+            System.out.println("Loaded " + documents.size() + " documents.");
+            
+            // Log a sample of the documents for debugging
+            if (!documents.isEmpty()) {
+                Document sampleDoc = documents.get(0);
+                System.out.println("Sample document: " + sampleDoc.getTitle());
+                System.out.println("Content length: " + sampleDoc.getOriginalContent().length() + " characters");
+            }
             
             // Preprocess the documents
-            List<Document> preprocessedDocuments = preprocessor.preprocessDocuments(documents);
-            System.out.println("Preprocessed " + preprocessedDocuments.size() + " documents");
-
-            // Index the documents
-            int indexedCount = indexer.indexDocuments(preprocessedDocuments);
-            System.out.println("Indexed " + indexedCount + " documents");
+            List<Document> preprocessedDocs = preprocessor.preprocessDocuments(documents);
+            System.out.println("Preprocessed " + preprocessedDocs.size() + " documents.");
             
-            // Initialize BM25 model after indexing
-            bm25.initialize();
+            // Log a sample of preprocessed document terms
+            if (!preprocessedDocs.isEmpty()) {
+                Document sampleDoc = preprocessedDocs.get(0);
+                System.out.println("Sample preprocessed document: " + sampleDoc.getTitle());
+                System.out.println("Unique terms: " + sampleDoc.getTermFrequencies().size());
+                System.out.println("First 10 terms: " + 
+                    sampleDoc.getTermFrequencies().keySet().stream().limit(10).collect(Collectors.joining(", ")));
+            }
             
-            return preprocessedDocuments;
-        } catch (IOException e) {
-            System.err.println("Error loading documents: " + e.getMessage());
-            return List.of();
+            // Index the preprocessed documents
+            int indexedCount = indexer.indexDocuments(preprocessedDocs);
+            System.out.println("Indexed " + indexedCount + " documents.");
+            System.out.println("Vocabulary size: " + indexer.getVocabularySize() + " unique terms");
+            documentsIndexed = true;
+            
+            return preprocessedDocs;
+        } catch (Exception e) {
+            System.err.println("Error loading or indexing documents: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
         }
     }
     
     /**
-     * Loads queries from the default queries directory.
+     * Loads queries from the default queries directory into a map of (queryId, queryText).
+     * The queryId is the filename without its extension.
      * 
-     * @return List of query strings
+     * @return Map of query IDs to query texts
      */
-    public List<String> loadQueries() {
-        List<String> queries = new ArrayList<>();
-        try {
-            Path path = Paths.get(QUERIES_PATH);
-            Files.walk(path)
-                .filter(Files::isRegularFile)
-                .filter(p -> p.toString().endsWith(".txt"))
-                .forEach(p -> {
+    public Map<String, String> loadQueries() {
+        Map<String, String> queryMap = new HashMap<>();
+        File queriesDir = new File(QUERIES_PATH);
+        File[] queryFiles = queriesDir.listFiles();
+
+        if (queryFiles != null) {
+            for (File queryFile : queryFiles) {
+                if (queryFile.isFile()) {
                     try {
-                        String query = Files.readString(p, StandardCharsets.UTF_8).trim();
-                        if (!query.isEmpty()) {
-                            queries.add(query);
+                        String fileName = queryFile.getName();
+                        String queryId = fileName;
+                        int dotIndex = fileName.lastIndexOf('.');
+                        if (dotIndex > 0 && dotIndex < fileName.length() - 1) { // Ensure dot is not first or last char
+                            queryId = fileName.substring(0, dotIndex);
                         }
+                        
+                        String queryContent = Files.readString(queryFile.toPath(), StandardCharsets.UTF_8);
+                        queryMap.put(queryId, queryContent.trim());
                     } catch (IOException e) {
-                        System.err.println("Error reading query file: " + p + ": " + e.getMessage());
+                        System.err.println("Error reading query file " + queryFile.getName() + ": " + e.getMessage());
                     }
-                });
-            System.out.println("Loaded " + queries.size() + " queries from " + path.toAbsolutePath());
-        } catch (IOException e) {
-            System.err.println("Error loading queries: " + e.getMessage());
+                }
+            }
+        } else {
+            System.err.println("Could not list query files in: " + QUERIES_PATH + ". Ensure the directory exists and is readable.");
         }
-        return queries;
+        return queryMap;
     }
     
     /**
@@ -170,121 +345,290 @@ public class App {
      * @return Preprocessed query string
      */
     public String preprocessQuery(String query) {
+        // Just delegate to the preprocessor
         return preprocessor.preprocessQuery(query);
     }
     
     /**
-     * Demonstrates the document loading and preprocessing functionality.
+     * Gets the name of the currently selected retrieval model.
      * 
-     * @param args Command line arguments
+     * @return The name of the current model (e.g., "VSM" or "BM25")
      */
-    public static void main(String[] args) {
-        App app = new App();
-        Scanner scanner = new Scanner(System.in);
+    public String getCurrentModelName() {
+        return currentModel.getModelName();
+    }
+    
+    /**
+     * Switches the retrieval model to the specified model.
+     * 
+     * @param modelName The name of the model to switch to ("VSM" or "BM25")
+     * @return true if successful, false if the model name is invalid
+     */
+    public boolean switchModel(String modelName) {
+        if (modelName == null) {
+            return false;
+        }
         
-        // Display actual paths for better debugging
-        Path documentsAbsPath = Paths.get(DOCUMENTS_PATH).toAbsolutePath();
-        Path queriesAbsPath = Paths.get(QUERIES_PATH).toAbsolutePath();
-        
-        // Interactive mode for document loading and query preprocessing
-        System.out.println("=== Search Engine Demo ===");
-        System.out.println("Documents directory: " + documentsAbsPath);
-        System.out.println("Queries directory: " + queriesAbsPath);
-        System.out.println();
-        System.out.println("1. Load and preprocess documents");
-        System.out.println("2. Load and preprocess queries");
-        System.out.println("3. Preprocess a custom query");
-        System.out.println("4. Search using BM25");
-        System.out.println("5. Exit");  
-        
-        boolean running = true;
-        List<Document> indexedDocuments = new ArrayList<>();  // Holds loaded/preprocessed/indexed docs
-
-        while (running) {
-            System.out.print("\nEnter your choice (1-5): ");
-            String choice = scanner.nextLine();
-            
-            switch (choice) {
-                case "1":
-                    // Load and preprocess documents
-                    List<Document> documents = app.loadAndPreprocessDocuments();
-                    indexedDocuments = documents;
-                    displayDocumentInfo(documents);
-                    break;
-                    
-                case "2":
-                    // Load and process queries
-                    List<String> queries = app.loadQueries();
-                    if (!queries.isEmpty()) {
-                        System.out.println("\nQuery Information:");
-                        for (int i = 0; i < Math.min(5, queries.size()); i++) {
-                            String originalQuery = queries.get(i);
-                            String processedQuery = app.preprocessQuery(originalQuery);
-                            System.out.println("Query " + (i + 1) + ":");
-                            System.out.println("  Original: " + originalQuery);
-                            System.out.println("  Processed: " + processedQuery);
-                            System.out.println();
-                        }
-                        
-                        if (queries.size() > 5) {
-                            System.out.println("... and " + (queries.size() - 5) + " more queries");
-                        }
-                    }
-                    break;
-                    
-                case "3":
-                    // Process custom query
-                    System.out.print("Enter query: ");
-                    String query = scanner.nextLine();
-                    String preprocessedQuery = app.preprocessQuery(query);
-                    System.out.println("Original query: " + query);
-                    System.out.println("Preprocessed query: " + preprocessedQuery);
-                    break;
-
-                case "4":
-                    // Search using BM25
-                    if (indexedDocuments.isEmpty()) {
-                        System.out.println("No documents indexed yet. Please select option 1 to load and index documents first.");
-                        break;
-                    }
-
-                    System.out.print("Enter search query: ");
-                    String searchQuery = scanner.nextLine();
-                    String processedSearchQuery = app.preprocessQuery(searchQuery);
-                    var results = app.bm25.search(searchQuery, processedSearchQuery, 10);
-                    System.out.println("\nSearch results for query: '" + searchQuery + "'");
-
-                    if (results.getResultCount() == 0) {
-                        System.out.println("No matching documents found.");
-                    } else {
-                        int rank = 1;
-                        for (DocumentScore ds : results.getResults()) {
-                            System.out.printf("%d. %s (score: %.4f)%n", rank++, ds.getDocument().getTitle(), ds.getScore());
-                        }
-                    }
-                    break;
-
-                case "5":
-                    running = false;
-                    System.out.println("Exiting...");
-                    break;
-                    
-                default:
-                    System.out.println("Invalid choice. Please try again.");
+        modelName = modelName.trim().toUpperCase();
+        switch (modelName) {
+            case "VSM":
+                currentModel = vsm;
+                System.out.println("Switched to Vector Space Model (VSM)");
+                return true;
+            case "BM25":
+                currentModel = bm25;
+                System.out.println("Switched to BM25 Model");
+                return true;
+            default:
+                System.out.println("Invalid model name: " + modelName);
+                return false;
+        }
+    }
+    
+    /**
+     * Executes a search query using the currently selected retrieval model.
+     * Will index documents if they haven't been indexed yet.
+     * 
+     * @param query The query string to search for
+     * @param topK The number of top results to return
+     * @return The search results or null if indexing failed
+     */
+    public QueryResult executeQuery(String query, int topK) {
+        // Make sure documents are indexed
+        if (!documentsIndexed) {
+            System.out.println("Documents not yet indexed. Indexing now...");
+            List<Document> documents = loadAndPreprocessDocuments();
+            if (documents.isEmpty()) {
+                System.err.println("Failed to index documents. Cannot execute query.");
+                return null;
             }
         }
         
-        scanner.close();
+        // Preprocess the query
+        String processedQuery = preprocessQuery(query);
+        if (processedQuery == null || processedQuery.isEmpty()) {
+            System.err.println("Query preprocessing failed.");
+            return null;
+        }
         
-        // Shutdown the document loader to release resources
-        app.documentLoader.shutdown();
+        // Execute the search using the current model
+        System.out.println("Executing search with query: " + query);
+        System.out.println("Processed query: " + processedQuery);
+        System.out.println("Using model: " + currentModel.getModelName());
+        
+        QueryResult results = currentModel.search(query, processedQuery, topK);
+        return results;
+}
+
+/**
+ * Demonstrates the document loading and preprocessing functionality.
+ * 
+ * @param args Command line arguments
+ */
+public static void main(String[] args) {
+    App app = new App();
+    Scanner scanner = new Scanner(System.in);
+    
+    // Display actual paths for better debugging
+    Path documentsAbsPath = Paths.get(DOCUMENTS_PATH).toAbsolutePath();
+    Path queriesAbsPath = Paths.get(QUERIES_PATH).toAbsolutePath();
+    
+    // Interactive mode for document loading and query preprocessing
+    System.out.println("=== Search Engine Demo ===");
+    System.out.println("Documents directory: " + documentsAbsPath);
+    System.out.println("Queries directory: " + queriesAbsPath);
+    
+    boolean running = true;
+    while (running) {
+        System.out.println("\nMAIN MENU");
+        System.out.println("1. Load and preprocess documents\n"
+        + "2. View Indexed Document Information\n"
+        + "3. Search with Custom Query\n"
+        + "4. Batch Search with Query File\n"
+        + "5. Switch Retrieval Model (Current: " + app.getCurrentModelName() + ")\n"
+        + "6. Evaluate Search Engine");
+        System.out.println("7. Exit");
+        
+        System.out.print("Enter your choice (1-7): ");
+        String choice = scanner.nextLine();
+        
+        switch (choice) {
+            case "1":
+                // Load and preprocess documents
+                List<Document> documents = app.loadAndPreprocessDocuments();
+                displayDocumentInfo(documents);
+                break;
+                
+            case "2":
+                // Load and process queries
+                Map<String, String> queryMap = app.queryIdToTextMap; // Use the already loaded map
+                if (queryMap != null && !queryMap.isEmpty()) {
+                    System.out.println("\nQuery Information:");
+                    int count = 0;
+                    for (Map.Entry<String, String> entry : queryMap.entrySet()) {
+                        if (count >= 5) break;
+                        String queryId = entry.getKey();
+                        String originalQuery = entry.getValue();
+                        String processedQuery = app.preprocessQuery(originalQuery);
+                        System.out.println("Query ID '" + queryId + "' (" + (count + 1) + "):");
+                        System.out.println("  Original: " + originalQuery);
+                        System.out.println("  Processed: " + processedQuery);
+                        System.out.println();
+                        count++;
+                    }
+                    
+                    if (queryMap.size() > 5) {
+                        System.out.println("... and " + (queryMap.size() - 5) + " more queries");
+                    }
+                }
+                break;
+                
+            case "3":
+                // Search with a custom query
+                System.out.print("Enter search query: ");
+                String query = scanner.nextLine();
+                System.out.print("Enter number of results to return: ");
+                int topK = 10; // Default value
+                try {
+                    topK = Integer.parseInt(scanner.nextLine().trim());
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid number, using default value of 10.");
+                }
+                
+                QueryResult results = app.executeQuery(query, topK);
+                if (results != null) {
+                    System.out.println("\n" + results);
+                }
+                break;
+                
+            case "4":
+                // Batch search with query file
+                Map<String, String> batchQueryMap = app.queryIdToTextMap; // Use the already loaded map
+                if (batchQueryMap == null || batchQueryMap.isEmpty()) {
+                    System.out.println("No queries found in the queries directory.");
+                    break;
+                }
+                
+                System.out.println("Found " + batchQueryMap.size() + " queries for batch processing.");
+                System.out.print("Enter number of results per query: ");
+                int batchTopK = 5; // Default value
+                try {
+                    batchTopK = Integer.parseInt(scanner.nextLine().trim());
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid number, using default value of 5.");
+                }
+                
+                System.out.println("\nExecuting batch search with " + batchQueryMap.size() + " queries...");
+                int batchCount = 0;
+                for (Map.Entry<String, String> entry : batchQueryMap.entrySet()) {
+                    String queryId = entry.getKey();
+                    String batchQuery = entry.getValue();
+                    System.out.println("\nProcessing Query ID '" + queryId + "' (" + (batchCount + 1) + "/" + batchQueryMap.size() + "): " + batchQuery);
+                    batchCount++;
+                    
+                    QueryResult batchResults = app.executeQuery(batchQuery, batchTopK);
+                    if (batchResults != null) {
+                        System.out.println(batchResults);
+                    }
+                }
+                break;
+                
+            case "5":
+                // Switch retrieval model
+                System.out.println("Current model: " + app.getCurrentModelName());
+                System.out.println("Available models: VSM, BM25");
+                System.out.print("Enter model name to switch to: ");
+                String modelName = scanner.nextLine().trim();
+                app.switchModel(modelName);
+                break;
+                
+            case "6": // Evaluate Search Engine
+                if (app.groundTruth == null) {
+                    System.out.println("Error: GroundTruth object not initialized. Evaluation unavailable.");
+                    break;
+                }
+                if (app.groundTruth.getAllQueryIds().isEmpty()) {
+                    System.out.println("Cannot evaluate. Ground truth is not loaded or is empty.");
+                    System.out.println("Please ensure '" + QRELS_FILE_PATH + "' exists and is populated (e.g., query_id Q0 doc_id relevance_score).");
+                    break;
+                }
+                if (app.evaluator == null) {
+                     System.out.println("Error: Evaluator object not initialized. Evaluation unavailable.");
+                    break;
+                }
+
+                System.out.print("Enter K for Precision@K, Recall@K, F1@K (default 10): ");
+                int evalK = 10; // Default K
+                try {
+                    String kInput = scanner.nextLine().trim();
+                    if (!kInput.isEmpty()) {
+                        evalK = Integer.parseInt(kInput);
+                        if (evalK <= 0) {
+                            System.out.println("K must be a positive integer. Using default K=10.");
+                            evalK = 10;
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid number for K, using default K=10.");
+                }
+                
+                if (!app.documentsIndexed) {
+                    System.out.println("Documents are not indexed. Indexing now before evaluation...");
+                    app.loadAndPreprocessDocuments(); 
+                    if (!app.documentsIndexed) {
+                        System.out.println("Failed to index documents. Cannot proceed with evaluation.");
+                        break; 
+                    }
+                     System.out.println("Documents indexed. Proceeding with evaluation.");
+                }
+                app.evaluator.evaluateAll(evalK);
+                break;
+
+            case "7": // Exit (changed from 6)
+                running = false;
+                System.out.println("Exiting...");
+                break;
+
+            default:
+                System.out.println("Invalid choice. Please try again.");
+        }
+
+        // ... existing code ...
     }
+    
+    scanner.close();
+    
+    // Shutdown the document loader to release resources
+    app.documentLoader.shutdown();
+}
     
     /**
      * Helper method to display information about documents.
      * 
      * @param documents List of documents to display information about
      */
+    /**
+     * Exports all loaded query IDs and their texts to a file.
+     */
+    private void exportQueryIdsAndTexts() {
+        if (this.queryIdToTextMap == null || this.queryIdToTextMap.isEmpty()) {
+            System.out.println("No queries loaded, skipping export of query IDs and texts.");
+            return;
+        }
+
+        Path outputPathFile = Paths.get(OUTPUT_PATH, "loaded_query_ids_and_texts.txt");
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPathFile.toFile()))) {
+            writer.write("# List of all loaded query IDs and their corresponding texts\n");
+            writer.write("# Format: query_id: query_text\n");
+            for (Map.Entry<String, String> entry : this.queryIdToTextMap.entrySet()) {
+                writer.write(entry.getKey() + ": " + entry.getValue().replace("\n", "\\n") + "\n"); // Escape newlines in query text
+            }
+            System.out.println("Successfully exported " + this.queryIdToTextMap.size() + " query IDs and texts to: " + outputPathFile.toAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("Error exporting query IDs and texts: " + e.getMessage());
+        }
+    }
+
     private static void displayDocumentInfo(List<Document> documents) {
         if (!documents.isEmpty()) {
             System.out.println("\nDocument Information:");
