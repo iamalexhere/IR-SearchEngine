@@ -1,17 +1,12 @@
 # List of all loaded query IDs and their corresponding texts
 # Format: query_id: query_text
-f1_q2: Evolution of Formula One car design from front-engined to monocoque chassis
-f1_q1: Genesis of Formula One and early Grand Prix racing history in Europe
-f1_q4: Key figures and milestones in Formula One safety improvements
-health_it_q10: Challenges in achieving EHR introperability in healthcare systems
-f1_q3: Impact of aerodynamics and turbocharged engines on Formula One performance in the 1970s and 1980s
-f1_q9: Fomula One saftey advancements throught history
-f1_q6: Most iconic rivalries among Formula One
-f1_q5: Role of Bernie Ecclestone in the commercialization and globalization of Formula One
-f1_q8: Drivers Dominations
-f1_q7: How did the 2014 regulations for hybrid power units change Formula One technology?
+convex_hull_q8: Convex Hull Geometry
+convex_hull_q7: Graham scan and QuickHull Algorithm
+convex_hull_q9: Clustering Data Mining Convex Hull
+if_education_q10: “Mathematics education" AND "impact on programming learning outcomes”
+if_education_q9: “Mathematics proficiency" AND "academic success" AND "IT students”
 health_it_q3: Impact of EHR usability on physician burnout
-f1_q10: F2 safety standards
+if_education_q8: “Mathematics curriculum" AND "relevance to computer science”
 health_it_q2: Ethical considerations for AI in medical diagnosis
 health_it_q1: Benefits and challenges of telemedicine implementation
 health_it_q7: Applications of VR/AR in mdeical rehabilitation and training
@@ -20,3 +15,28 @@ health_it_q5: Market growth and future of surgical robotics
 health_it_q4: Accuracy and privacy concerns of wearable health devices
 health_it_q9: Compare De Vinci, Versius, and Hugo robotic surgical sstems
 health_it_q8: How is bg data analytcs transforming population health management?
+f1_q2: Evolution of Formula One car design from front-engined to monocoque chassis
+f1_q1: Genesis of Formula One and early Grand Prix racing history in Europe
+health_it_q10: Challenges in achieving EHR introperability in healthcare systems
+f1_q4: Key figures and milestones in Formula One safety improvements
+f1_q3: Impact of aerodynamics and turbocharged engines on Formula One performance in the 1970s and 1980s
+if_education_q1: “The impact of mathematics education" AND "computer science students”
+f1_q9: Fomula One saftey advancements throught history
+if_education_q3: “Mathematics skills" AND "programming ability" AND "computer science”
+convex_hull_q10: Linear Programming Convex Hull
+if_education_q2: “Mathematics knowledge" AND "academic performance" AND "informatics students”
+f1_q6: Most iconic rivalries among Formula One
+if_education_q5: “Discrete mathematics" AND "problem-solving skills" AND "informatics students”
+f1_q5: Role of Bernie Ecclestone in the commercialization and globalization of Formula One
+if_education_q4: “Role of mathematics" AND "computer science education”
+f1_q8: Drivers Dominations
+if_education_q7: “How mathematics affects" AND "coding performance" AND informatics students”
+if_education_q6: “Mathematics foundation" AND "logical thinking" AND "computer science students”
+f1_q7: How did the 2014 regulations for hybrid power units change Formula One technology?
+f1_q10: F2 safety standards
+convex_hull_q4: Convex Hull for 3D Mesh Simplification
+convex_hull_q3: Robotics Navigation Convex Hull
+convex_hull_q6: Convex Hull Use Cases in Real World Problems
+convex_hull_q5: Collision Detection Convex Hull
+convex_hull_q2: Convex Hull Computer Graphics
+convex_hull_q1: Convex Hull Applications

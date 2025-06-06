@@ -1,25 +1,33 @@
 # List of all indexed document IDs
-Anticipating Needs for Evolving Informatics Disciplines.txt
-Artificial Intelligence in Healthcare.txt
-Big Data Analytics in Healthcare.txt
-Commercialization and Globalization Under Ecclestone.txt
-Correlation with Career Success, Innovation, and Research in the Informatics Sector.txt
-Discrete Mathematics, Logic, and Set Theory in Informatics Education.txt
-Electronic Health Records (EHRs).txt
-Evolution of Car Design and Early Technological Leaps.txt
-Genomics and Precision Medicine.txt
-Iconic Rivalries and Unforgettable Seasons.txt
-Immersive Technologies in Medicine.txt
-Legendary Drivers and Dominant Dynasties.txt
-Pillars of Effective Software Design and System Architecture.txt
-Student Perceptions, Difficulties, and Engagement with Mathematics in Informatics.txt
-Telemedicine and Remote Patient Monitoring.txt
-The Cognitive Impact of Calculus and Linear Algebra on Informatics Students.txt
-The Evolution of Mathematics Curricula and Pedagogical Approaches.txt
-The Genesis of Grand Prix Racing and the Dawn of Formula One.txt
-The Hybrid Era and the Modern Technological Landscape.txt
-The Rise of Aerodynamics and the Turbo Era.txt
 The Rise of Surgical Robotics.txt
-The Role of Probability, Statistics, and Graph Theory in AI, Machine Learning, and Data Science.txt
+Big Data Analytics in Healthcare.txt
 The Unrelenting Pursuit of Safety.txt
+Legendary Drivers and Dominant Dynasties.txt
+Artificial Intelligence in Healthcare.txt
+Immersive Technologies in Medicine.txt
+Convex Hull for Robotics Navigation.txt
+Electronic Health Records (EHRs).txt
+Pillars of Effective Software Design and System Architecture.txt
+Discrete Mathematics, Logic, and Set Theory in Informatics Education.txt
+Student Perceptions, Difficulties, and Engagement with Mathematics in Informatics.txt
+The Evolution of Mathematics Curricula and Pedagogical Approaches.txt
+The Rise of Aerodynamics and the Turbo Era.txt
+Pattern Recognition Using Convex Hull.txt
+Anticipating Needs for Evolving Informatics Disciplines.txt
+Convex Hull in Computer Graphics.txt
+The Genesis of Grand Prix Racing and the Dawn of Formula One.txt
+Iconic Rivalries and Unforgettable Seasons.txt
+Telemedicine and Remote Patient Monitoring.txt
+Commercialization and Globalization Under Ecclestone.txt
+Convex Hull for Collision Detection in Simulations.txt
+Correlation with Career Success, Innovation, and Research in the Informatics Sector.txt
+Real-World Applications of Convex Hulls.txt
+Evolution of Car Design and Early Technological Leaps.txt
+The Hybrid Era and the Modern Technological Landscape.txt
+Understanding Convex Hull in Geometry.txt
+The Cognitive Impact of Calculus and Linear Algebra on Informatics Students.txt
+Convex Hull in Image Processing.txt
 Wearable Technology in Healthcare.txt
+Convex Hull in Optimization Problems.txt
+The Role of Probability, Statistics, and Graph Theory in AI, Machine Learning, and Data Science.txt
+Genomics and Precision Medicine.txt

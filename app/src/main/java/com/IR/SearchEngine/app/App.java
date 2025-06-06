@@ -170,10 +170,10 @@ public class App {
         }
 
         // Export document IDs after indexing
-        exportDocumentIds();
+        //exportDocumentIds();
 
         // Export query IDs and texts after loading them
-        exportQueryIdsAndTexts();
+        // exportQueryIdsAndTexts();
         
         // Initialize VSM and BM25 models after indexing documents
         this.vsm = new VSM(indexer, (Preprocessor) preprocessor);
