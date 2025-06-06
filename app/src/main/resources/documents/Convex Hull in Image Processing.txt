@@ -1,2 +1,0 @@
-Convex Hull in Image Processing
-Image processing tasks like object segmentation and shape matching frequently use convex hulls. For instance, convex hulls help in identifying the boundaries of tumors in medical imaging or tracing contours in surveillance footage. They provide a simplified representation of complex shapes, which can then be compared or stored more efficiently during image analysis.

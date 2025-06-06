@@ -4,290 +4,396 @@
  */
 package com.IR.SearchEngine.model;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.Comparator;
-import java.util.List;
-import java.util.ArrayList;
-import java.lang.Math; // Import Math class
+import com.IR.SearchEngine.data.Document;
+import com.IR.SearchEngine.data.DocumentScore;
+import com.IR.SearchEngine.data.QueryResult;
+import com.IR.SearchEngine.indexing.Indexer;
+import com.IR.SearchEngine.preprocessing.Preprocessor;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Implements the Vector Space Model for document retrieval.
  * VSM represents documents and queries as vectors in a high-dimensional space.
- *
+ * 
  * Responsibilities:
  * - Calculate TF-IDF weights for terms in documents and queries
  * - Compute cosine similarity between document and query vectors
- * - Support different term weighting schemes (binary, TF, TF-IDF) - Current implementation uses TF-IDF
- * - Handle document length normalization - Implicit in cosine similarity denominator
- *
+ * - Support different term weighting schemes (binary, TF, TF-IDF)
+ * - Handle document length normalization
+ * 
  * Implementation notes:
- * - Uses HashMap for sparse vector representation
- * - Basic tokenization by splitting on spaces
- *
+ * - Uses sparse vector representation for memory efficiency
+ * - Implements optimized cosine similarity calculation
+ * - Caches document vectors for improved performance
+ * 
  * @author alexhere
  */
-public class VSM {
-
-    // Stores TF-IDF vector for each document: Document ID -> Term -> TF-IDF Weight
-    private Map<String, Map<String, Double>> tfidfVectors;
-
-    // Stores Document Frequency for each term: Term -> Number of documents containing the term
-    private Map<String, Integer> documentFrequency;
-
-    // Stores the inverse document frequency for each term: Term -> IDF
-    private Map<String, Double> inverseDocumentFrequency;
-
-    // Total number of documents in the corpus
-    private int totalDocuments;
-
-    // Stores raw term frequencies for each document: Document ID -> Term -> Frequency
-    private Map<String, Map<String, Integer>> termFrequencies;
-
-
-    public VSM() {
-        this.tfidfVectors = new HashMap<>();
-        this.documentFrequency = new HashMap<>();
-        this.inverseDocumentFrequency = new HashMap<>();
-        this.termFrequencies = new HashMap<>();
-        this.totalDocuments = 0;
-    }
-
+/**
+ * Vector Space Model (VSM) Implementation
+ * 
+ * The Vector Space Model represents documents and queries as vectors in a high-dimensional space where
+ * each dimension corresponds to a term in the vocabulary. Similarity between documents and queries
+ * is measured using the cosine of the angle between their vectors.
+ * 
+ * Key formulas:
+ * 
+ * 1. TF-IDF weight for term t in document d:
+ *    w(t,d) = tf(t,d) * idf(t)
+ * 
+ * 2. Term Frequency variants:
+ *    - Binary: tf(t,d) = 1 if term exists, 0 otherwise
+ *    - Raw frequency: tf(t,d) = frequency of term t in document d
+ *    - Log normalization: tf(t,d) = 1 + log(frequency of term t in document d)
+ *    - Augmented frequency: tf(t,d) = 0.5 + 0.5 * (frequency of term t in document d / max frequency in d)
+ * 
+ * 3. Inverse Document Frequency:
+ *    idf(t) = log(N / df(t))
+ *    where N is the total number of documents, df(t) is the number of documents containing term t
+ * 
+ * 4. Cosine Similarity between document d and query q:
+ *    sim(d,q) = (d · q) / (|d| * |q|)
+ *    = sum(w(t,d) * w(t,q) for all t) / sqrt(sum(w(t,d)^2 for all t) * sum(w(t,q)^2 for all t))
+ */
+public class VSM implements IModel {
+    
+    private final Indexer indexer;
+    private final Preprocessor preprocessor;
+    private final Map<Integer, Map<String, Double>> documentVectors;
+    private final Map<Integer, Double> documentVectorNorms;
+    
+    // Weight constants for term frequency variants
+    private static final int TF_BINARY = 0;
+    private static final int TF_RAW = 1;
+    private static final int TF_LOG = 2;
+    private static final int TF_AUGMENTED = 3;
+    
+    // Default weighting scheme
+    private final int tfWeightingScheme;
+    
     /**
-     * Builds the VSM index from a collection of documents.
-     *
-     * @param documents A map where keys are document IDs and values are the document content.
+     * Constructor initializing the VSM with an indexer and preprocessor.
+     * Uses default TF-LOG weighting scheme.
+     * 
+     * @param indexer The indexer containing document information and term statistics
+     * @param preprocessor The preprocessor for query processing
      */
-    public void buildIndex(Map<String, String> documents) {
-        this.totalDocuments = documents.size();
-
-        // 1. Calculate Term Frequencies (TF) for each document
-        calculateTermFrequencies(documents);
-
-        // 2. Calculate Document Frequencies (DF)
-        calculateDocumentFrequencies();
-
-        // 3. Calculate Inverse Document Frequencies (IDF)
-        calculateInverseDocumentFrequencies();
-
-        // 4. Calculate TF-IDF weights for each document
-        calculateTfidfVectors();
+    public VSM(Indexer indexer, Preprocessor preprocessor) {
+        this(indexer, preprocessor, TF_LOG);
     }
-
+    
     /**
-     * Calculates the term frequencies for each document.
-     *
-     * @param documents The map of documents.
+     * Constructor initializing the VSM with specified components and weighting scheme.
+     * 
+     * @param indexer The indexer containing document information and term statistics
+     * @param preprocessor The preprocessor for query processing
+     * @param tfWeightingScheme The term frequency weighting scheme to use
      */
-    private void calculateTermFrequencies(Map<String, String> documents) {
-        for (Map.Entry<String, String> entry : documents.entrySet()) {
-            String docId = entry.getKey();
-            String content = entry.getValue();
-
-            Map<String, Integer> tf = new HashMap<>();
-            // Basic tokenization: split by spaces and convert to lowercase
-            String[] terms = content.toLowerCase().split("\\s+");
-
-            for (String term : terms) {
-                tf.put(term, tf.getOrDefault(term, 0) + 1);
+    public VSM(Indexer indexer, Preprocessor preprocessor, int tfWeightingScheme) {
+        if (indexer == null) {
+            throw new IllegalArgumentException("Indexer cannot be null");
+        }
+        if (preprocessor == null) {
+            throw new IllegalArgumentException("Preprocessor cannot be null");
+        }
+        
+        this.indexer = indexer;
+        this.preprocessor = preprocessor;
+        this.documentVectors = new HashMap<>();
+        this.documentVectorNorms = new HashMap<>();
+        this.tfWeightingScheme = tfWeightingScheme;
+        
+        // Precompute document vectors for all documents in the index
+        precomputeAllDocumentVectors();
+    }
+    
+    /**
+     * Gets the name of this retrieval model.
+     * 
+     * @return The model name ("VSM")
+     */
+    @Override
+    public String getModelName() {
+        return "VSM";
+    }
+    
+    /**
+     * Initializes the model by precomputing document vectors.
+     * Called after documents have been indexed.
+     */
+    @Override
+    public void initialize() {
+        precomputeAllDocumentVectors();
+    }
+    
+    /**
+     * Precomputes TF-IDF vectors for all documents to improve search performance.
+     * This is called during initialization.
+     */
+    private void precomputeAllDocumentVectors() {
+        System.out.println("Precomputing document vectors for " + indexer.getDocumentCount() + " documents");
+        List<Document> allDocs = indexer.getAllDocuments();
+        
+        // Create a mapping from document ID string to internal integer ID
+        Map<String, Integer> docIdMap = new HashMap<>();
+        for (int i = 0; i < allDocs.size(); i++) {
+            docIdMap.put(allDocs.get(i).getId(), i);
+        }
+        
+        for (int i = 0; i < allDocs.size(); i++) {
+            Document doc = allDocs.get(i);
+            Map<String, Double> docVector = computeDocumentVector(doc);
+            documentVectors.put(i, docVector);
+            documentVectorNorms.put(i, computeVectorNorm(docVector));
+            
+            // Print debug info for the first few documents
+            if (i < 3) {
+                System.out.println("Computed vector for document: " + doc.getTitle() + 
+                                 " (ID: " + doc.getId() + ", internal ID: " + i + ")");
+                System.out.println("Vector size: " + docVector.size() + " terms");
             }
-            termFrequencies.put(docId, tf);
         }
+        System.out.println("Finished precomputing document vectors");
     }
-
+    
     /**
-     * Calculates the document frequencies for each term across the corpus.
+     * Computes the TF-IDF weighted vector for a document.
+     * 
+     * @param document The document to compute the vector for
+     * @return A map from terms to their TF-IDF weights
      */
-    private void calculateDocumentFrequencies() {
-        for (Map<String, Integer> tf : termFrequencies.values()) {
-            Set<String> uniqueTermsInDoc = new HashSet<>(tf.keySet());
-            for (String term : uniqueTermsInDoc) {
-                documentFrequency.put(term, documentFrequency.getOrDefault(term, 0) + 1);
-            }
-        }
-    }
-
-    /**
-     * Calculates the inverse document frequencies for each term.
-     */
-    private void calculateInverseDocumentFrequencies() {
-        for (String term : documentFrequency.keySet()) {
-            double df = documentFrequency.get(term);
-            // Add 1 to denominator to avoid division by zero for terms not in corpus (shouldn't happen here)
-            // and use log base 10 or natural log - here using natural log.
-            double idf = Math.log(totalDocuments / (df));
-            inverseDocumentFrequency.put(term, idf);
-        }
-    }
-
-    /**
-     * Calculates the TF-IDF vectors for all documents.
-     */
-    private void calculateTfidfVectors() {
-        for (Map.Entry<String, Map<String, Integer>> docEntry : termFrequencies.entrySet()) {
-            String docId = docEntry.getKey();
-            Map<String, Integer> tf = docEntry.getValue();
-            Map<String, Double> tfidf = new HashMap<>();
-
-            for (Map.Entry<String, Integer> termEntry : tf.entrySet()) {
-                String term = termEntry.getKey();
-                int termFreq = termEntry.getValue();
-                double idf = inverseDocumentFrequency.getOrDefault(term, 0.0); // Get IDF, default to 0 if term not in IDF map
-
-                double tfidfWeight = (double) termFreq * idf;
-                tfidf.put(term, tfidfWeight);
-            }
-            tfidfVectors.put(docId, tfidf);
-        }
-    }
-
-
-    /**
-     * Calculates the TF-IDF vector for a given query.
-     * Query vector calculation usually uses raw TF or slightly different weighting.
-     * This uses a simple TF-IDF where IDF is based on the document corpus.
-     *
-     * @param query The search query string.
-     * @return The TF-IDF vector for the query.
-     */
-    public Map<String, Double> getQueryVector(String query) {
-        Map<String, Integer> queryTf = new HashMap<>();
-        // Basic tokenization: split by spaces and convert to lowercase
-        String[] terms = query.toLowerCase().split("\\s+");
-
-        for (String term : terms) {
-            queryTf.put(term, queryTf.getOrDefault(term, 0) + 1);
-        }
-
-        Map<String, Double> queryVector = new HashMap<>();
-        for (Map.Entry<String, Integer> entry : queryTf.entrySet()) {
+    public Map<String, Double> computeDocumentVector(Document document) {
+        Map<String, Double> vector = new HashMap<>();
+        Map<String, Integer> termFrequencies = document.getTermFrequencies();
+        
+        // For each term in the document, compute its TF-IDF weight
+        for (Map.Entry<String, Integer> entry : termFrequencies.entrySet()) {
             String term = entry.getKey();
-            int termFreq = entry.getValue();
-            // Use IDF from the document corpus
-            double idf = inverseDocumentFrequency.getOrDefault(term, 0.0);
-
-            double tfidfWeight = (double) termFreq * idf;
-            queryVector.put(term, tfidfWeight);
+            int rawTF = entry.getValue();
+            
+            // Skip terms not in the index vocabulary (should not happen in normal operation)
+            if (!indexer.getVocabulary().contains(term)) {
+                continue;
+            }
+            
+            // Compute the weighted TF component based on the selected scheme
+            double weightedTF = computeWeightedTF(rawTF, document.getLength());
+            
+            // Get the IDF value from the indexer
+            double idf = indexer.getIdf(term);
+            
+            // Compute the final TF-IDF weight
+            double tfIdf = weightedTF * idf;
+            vector.put(term, tfIdf);
         }
+        
+        return vector;
+    }
+    
+    /**
+     * Computes the TF-IDF weighted vector for a query.
+     * 
+     * @param processedQuery The preprocessed query terms with their frequencies
+     * @return A map from terms to their TF-IDF weights
+     */
+    public Map<String, Double> computeQueryVector(Map<String, Integer> processedQuery) {
+        Map<String, Double> queryVector = new HashMap<>();
+        int queryLength = processedQuery.values().stream().mapToInt(Integer::intValue).sum();
+        
+        // For each term in the query, compute its TF-IDF weight
+        for (Map.Entry<String, Integer> entry : processedQuery.entrySet()) {
+            String term = entry.getKey();
+            int rawTF = entry.getValue();
+            
+            // Skip terms not in the vocabulary
+            if (!indexer.getVocabulary().contains(term)) {
+                continue;
+            }
+            
+            // Compute the weighted TF component
+            double weightedTF = computeWeightedTF(rawTF, queryLength);
+            
+            // Get the IDF value
+            double idf = indexer.getIdf(term);
+            
+            // Compute the TF-IDF weight
+            double tfIdf = weightedTF * idf;
+            queryVector.put(term, tfIdf);
+        }
+        
         return queryVector;
     }
-
-
+    
     /**
-     * Calculates the cosine similarity between two vectors.
-     *
-     * @param vector1 The first vector (e.g., query vector).
-     * @param vector2 The second vector (e.g., document vector).
-     * @return The cosine similarity score (between 0 and 1).
+     * Computes the weighted term frequency based on the selected weighting scheme.
+     * 
+     * @param rawTF The raw term frequency
+     * @param docLength The document length (total terms)
+     * @return The weighted term frequency
      */
-    public double cosineSimilarity(Map<String, Double> vector1, Map<String, Double> vector2) {
+    private double computeWeightedTF(int rawTF, int docLength) {
+        switch (tfWeightingScheme) {
+            case TF_BINARY:
+                // Binary weighting: 1 if term exists, 0 otherwise
+                return rawTF > 0 ? 1.0 : 0.0;
+                
+            case TF_RAW:
+                // Raw frequency: use the raw count
+                return rawTF;
+                
+            case TF_LOG:
+                // Logarithmic weighting: 1 + log(tf)
+                return rawTF > 0 ? 1.0 + Math.log10(rawTF) : 0.0;
+                
+            case TF_AUGMENTED:
+                // Augmented frequency: prevents bias towards longer documents
+                // 0.5 + 0.5 * (tf / max_tf)
+                return 0.5 + 0.5 * ((double) rawTF / docLength);
+                
+            default:
+                // Default to log weighting
+                return rawTF > 0 ? 1.0 + Math.log10(rawTF) : 0.0;
+        }
+    }
+    
+    /**
+     * Computes the Euclidean norm (magnitude) of a vector.
+     * 
+     * @param vector The vector as a map from terms to weights
+     * @return The Euclidean norm of the vector
+     */
+    private double computeVectorNorm(Map<String, Double> vector) {
+        double sumOfSquares = vector.values().stream()
+                .mapToDouble(weight -> weight * weight)
+                .sum();
+        return Math.sqrt(sumOfSquares);
+    }
+    
+    /**
+     * Computes the cosine similarity between two vectors.
+     * 
+     * @param vector1 The first vector
+     * @param vector2 The second vector
+     * @return The cosine similarity value [0,1]
+     */
+    public double computeCosineSimilarity(Map<String, Double> vector1, Map<String, Double> vector2) {
+        // Ensure we use the smaller vector as the first one for efficiency
+        if (vector1.size() > vector2.size()) {
+            Map<String, Double> temp = vector1;
+            vector1 = vector2;
+            vector2 = temp;
+        }
+        
         double dotProduct = 0.0;
-        double magnitude1 = 0.0;
-        double magnitude2 = 0.0;
-
-        // Calculate dot product
+        double norm1 = computeVectorNorm(vector1);
+        double norm2 = computeVectorNorm(vector2);
+        
+        // If either vector has zero magnitude, similarity is 0
+        if (norm1 == 0 || norm2 == 0) {
+            return 0.0;
+        }
+        
+        // Compute dot product by iterating through the smaller vector
         for (Map.Entry<String, Double> entry : vector1.entrySet()) {
             String term = entry.getKey();
             Double weight1 = entry.getValue();
-            Double weight2 = vector2.get(term); // Get weight from vector2
-
+            Double weight2 = vector2.get(term);
+            
             if (weight2 != null) {
                 dotProduct += weight1 * weight2;
             }
         }
-
-        // Calculate magnitude of vector1
-        for (Double weight : vector1.values()) {
-            magnitude1 += weight * weight;
-        }
-        magnitude1 = Math.sqrt(magnitude1);
-
-        // Calculate magnitude of vector2
-        for (Double weight : vector2.values()) {
-            magnitude2 += weight * weight;
-        }
-        magnitude2 = Math.sqrt(magnitude2);
-
-        // Calculate cosine similarity
-        if (magnitude1 == 0 || magnitude2 == 0) {
-            return 0.0; // Avoid division by zero
-        } else {
-            return dotProduct / (magnitude1 * magnitude2);
-        }
+        
+        // Cosine similarity formula: dot_product / (|v1| * |v2|)
+        return dotProduct / (norm1 * norm2);
     }
-
+    
     /**
-     * Searches the indexed documents for the given query and returns a ranked list of document IDs.
-     *
-     * @param query The search query string.
-     * @return A list of document IDs ranked by relevance (highest similarity first).
+     * Executes a search for the given query and returns top K results.
+     * 
+     * @param query Original query string
+     * @param processedQuery Preprocessed query string
+     * @param topK Number of top results to return
+     * @return The search results with document IDs and similarity scores
      */
-    public List<String> search(String query) {
-        Map<String, Double> queryVector = getQueryVector(query);
-        Map<String, Double> similarityScores = new HashMap<>();
-
-        for (Map.Entry<String, Map<String, Double>> docEntry : tfidfVectors.entrySet()) {
-            String docId = docEntry.getKey();
-            Map<String, Double> documentVector = docEntry.getValue();
-            double similarity = cosineSimilarity(queryVector, documentVector);
-            similarityScores.put(docId, similarity);
-        }
-
-        // Sort documents by similarity score in descending order
-        List<Map.Entry<String, Double>> sortedDocuments = new ArrayList<>(similarityScores.entrySet());
-        sortedDocuments.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
-
-        // Extract ranked document IDs
-        List<String> rankedDocIds = new ArrayList<>();
-        for (Map.Entry<String, Double> entry : sortedDocuments) {
-            // Optionally, you could filter out documents with similarity 0
-             if (entry.getValue() > 0) {
-                rankedDocIds.add(entry.getKey());
+    public QueryResult search(String query, String processedQuery, int topK) {
+        long startTime = System.currentTimeMillis();
+        
+        // Debug log query information
+        System.out.println("Executing search for query: " + query);
+        System.out.println("Processed query: " + processedQuery);
+        
+        // Preprocess query and convert to term frequency map
+        Map<String, Integer> queryTermFreqs = processQueryToTermFrequencies(processedQuery);
+        System.out.println("Query terms: " + queryTermFreqs.keySet());
+        
+        // Compute query vector
+        Map<String, Double> queryVector = computeQueryVector(queryTermFreqs);
+        System.out.println("Query vector size: " + queryVector.size() + " terms");
+        
+        // Initialize results list
+        List<DocumentScore> results = new ArrayList<>();
+        
+        // Get all documents for matching
+        List<Document> allDocs = indexer.getAllDocuments();
+        System.out.println("Comparing query to " + allDocs.size() + " documents");
+        
+        // For each document, compute similarity with the query
+        for (Map.Entry<Integer, Map<String, Double>> entry : documentVectors.entrySet()) {
+            int docId = entry.getKey();
+            Map<String, Double> docVector = entry.getValue();
+            
+            // Make sure docId is valid
+            if (docId >= 0 && docId < allDocs.size()) {
+                // Compute similarity
+                double similarity = computeCosineSimilarity(queryVector, docVector);
+                
+                // Add to results if similarity is positive and above threshold
+                if (similarity > 0.01) { // Use a small threshold to filter out very low similarities
+                    Document doc = allDocs.get(docId);
+                    // Create a DocumentScore with TF-IDF score type
+                    results.add(new DocumentScore(doc, similarity, "TF-IDF"));
+                    
+                    // Debug log for matching documents
+                    System.out.println("Match found: " + doc.getTitle() + " (score: " + similarity + ")");
+                }
             }
         }
-
-        return rankedDocIds;
+        
+        // Sort by similarity score (descending)
+        results.sort(Comparator.comparing(DocumentScore::getScore).reversed());
+        System.out.println("Found " + results.size() + " matching documents");
+        
+        // Limit to top K results
+        List<DocumentScore> topResults = results.stream()
+                .limit(topK)
+                .collect(Collectors.toList());
+        
+        long endTime = System.currentTimeMillis();
+        long executionTime = endTime - startTime;
+        
+        // Create a QueryResult with the VSM model name
+        return new QueryResult(query, processedQuery, topResults, executionTime, "VSM");
     }
-
-
-    public static void main(String[] args) {
-        // Example usage:
-        VSM vsm = new VSM();
-
-        Map<String, String> documents = new HashMap<>();
-        documents.put("doc1", "This is the first document about information retrieval.");
-        documents.put("doc2", "This document is about vector space models.");
-        documents.put("doc3", "Information retrieval is an interesting topic.");
-        documents.put("doc4", "Vector space models are used in information retrieval.");
-
-        vsm.buildIndex(documents);
-
-        String query = "information retrieval";
-        List<String> results = vsm.search(query);
-
-        System.out.println("Search results for query: \"" + query + "\"");
-        if (results.isEmpty()) {
-            System.out.println("No documents found.");
-        } else {
-            System.out.println("Ranked document IDs:");
-            for (String docId : results) {
-                System.out.println("- " + docId);
+    
+    /**
+     * Converts a preprocessed query string to a map of term frequencies.
+     * 
+     * @param processedQuery The preprocessed query string
+     * @return Map of terms to their frequencies in the query
+     */
+    private Map<String, Integer> processQueryToTermFrequencies(String processedQuery) {
+        // If the query is already preprocessed by an external component
+        String[] terms = processedQuery.split("\\s+");
+        Map<String, Integer> termFreqs = new HashMap<>();
+        
+        for (String term : terms) {
+            if (!term.isEmpty()) {
+                termFreqs.put(term, termFreqs.getOrDefault(term, 0) + 1);
             }
         }
-
-        query = "vector models";
-         results = vsm.search(query);
-
-        System.out.println("\nSearch results for query: \"" + query + "\"");
-        if (results.isEmpty()) {
-            System.out.println("No documents found.");
-        } else {
-            System.out.println("Ranked document IDs:");
-            for (String docId : results) {
-                System.out.println("- " + docId);
-            }
-        }
+        
+        return termFreqs;
     }
 }

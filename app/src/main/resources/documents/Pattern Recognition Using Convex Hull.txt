@@ -1,2 +1,0 @@
-Pattern Recognition Using Convex Hull
-In pattern recognition, convex hulls are employed to extract features from image contours. For example, in handwritten character recognition, the convex hull can describe the global shape of a letter. Comparing the convex hulls of different shapes can reveal structural similarities and is often used to enhance classification accuracy in machine learning models for visual data.

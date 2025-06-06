@@ -1,0 +1,22 @@
+# List of all loaded query IDs and their corresponding texts
+# Format: query_id: query_text
+f1_q2: Evolution of Formula One car design from front-engined to monocoque chassis
+f1_q1: Genesis of Formula One and early Grand Prix racing history in Europe
+f1_q4: Key figures and milestones in Formula One safety improvements
+health_it_q10: Challenges in achieving EHR introperability in healthcare systems
+f1_q3: Impact of aerodynamics and turbocharged engines on Formula One performance in the 1970s and 1980s
+f1_q9: Fomula One saftey advancements throught history
+f1_q6: Most iconic rivalries among Formula One
+f1_q5: Role of Bernie Ecclestone in the commercialization and globalization of Formula One
+f1_q8: Drivers Dominations
+f1_q7: How did the 2014 regulations for hybrid power units change Formula One technology?
+health_it_q3: Impact of EHR usability on physician burnout
+f1_q10: F2 safety standards
+health_it_q2: Ethical considerations for AI in medical diagnosis
+health_it_q1: Benefits and challenges of telemedicine implementation
+health_it_q7: Applications of VR/AR in mdeical rehabilitation and training
+health_it_q6: Role of AI in genomics and personalized medicine
+health_it_q5: Market growth and future of surgical robotics
+health_it_q4: Accuracy and privacy concerns of wearable health devices
+health_it_q9: Compare De Vinci, Versius, and Hugo robotic surgical sstems
+health_it_q8: How is bg data analytcs transforming population health management?
