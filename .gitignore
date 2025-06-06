@@ -3,3 +3,6 @@
 
 # Ignore Gradle build output directory
 build
+
+# Gradle build artifacts
+bin
