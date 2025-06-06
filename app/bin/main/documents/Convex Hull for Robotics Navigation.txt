@@ -1,2 +1,0 @@
-Convex Hull for Robotics Navigation
-Autonomous robots use convex hulls to define the navigable area around obstacles. By computing the convex hull of nearby static or dynamic objects, robots can plan paths that avoid collisions and optimize movement. This technique is commonly seen in swarm robotics and drone path planning, where maintaining a convex perimeter helps in formation control and obstacle avoidance.

@@ -1,2 +1,0 @@
-Convex Hull in Computer Graphics
-In computer graphics, the convex hull is used to render shapes and compute object boundaries efficiently. It aids in silhouette generation, where the outermost edge of a 3D object is projected for lighting and shadow calculations. Furthermore, convex hulls assist in hitbox creation for game physics, allowing fast and accurate collision detection by simplifying object outlines into convex polygons.
