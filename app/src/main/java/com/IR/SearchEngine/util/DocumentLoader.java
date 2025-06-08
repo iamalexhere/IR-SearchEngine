@@ -139,58 +139,6 @@ public class DocumentLoader {
     }
     
     /**
-     * Loads documents from a TREC format file.
-     * TREC format is a standard format used in information retrieval evaluation.
-     * 
-     * @param filePath Path to the TREC format file
-     * @return List of Document objects
-     * @throws IOException If an I/O error occurs
-     */
-    public List<Document> loadTrecDocuments(Path filePath) throws IOException {
-        if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
-            throw new IOException("File does not exist or is not a regular file: " + filePath);
-        }
-        
-        List<Document> documents = new ArrayList<>();
-        StringBuilder currentDoc = new StringBuilder();
-        String currentDocId = null;
-        String currentTitle = null;
-        boolean inDocument = false;
-        
-        try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("<DOC>")) {
-                    inDocument = true;
-                    currentDoc = new StringBuilder();
-                } else if (line.startsWith("</DOC>")) {
-                    inDocument = false;
-                    if (currentDocId != null) {
-                        // Create a new document and add it to the list
-                        Document document = new Document(currentDocId, 
-                                                        currentTitle != null ? currentTitle : currentDocId, 
-                                                        currentDoc.toString());
-                        documents.add(document);
-                    }
-                    currentDocId = null;
-                    currentTitle = null;
-                } else if (inDocument) {
-                    if (line.startsWith("<DOCNO>") && line.endsWith("</DOCNO>")) {
-                        currentDocId = line.substring(7, line.length() - 8).trim();
-                    } else if (line.startsWith("<TITLE>") && line.endsWith("</TITLE>")) {
-                        currentTitle = line.substring(7, line.length() - 8).trim();
-                    } else if (!line.startsWith("<")) {
-                        // Add content lines that are not XML tags
-                        currentDoc.append(line).append("\n");
-                    }
-                }
-            }
-        }
-        
-        return documents;
-    }
-    
-    /**
      * Creates a document from a string content.
      * Useful for testing or creating documents from in-memory content.
      * 
@@ -201,63 +149,6 @@ public class DocumentLoader {
      */
     public Document createDocumentFromString(String id, String title, String content) {
         return new Document(id, title, content);
-    }
-    
-    /**
-     * Loads HTML documents from a directory.
-     * This method extracts text content from HTML files.
-     * 
-     * @param directoryPath Path to the directory containing HTML files
-     * @return List of Document objects
-     * @throws IOException If an I/O error occurs
-     */
-    public List<Document> loadHtmlDocumentsFromDirectory(Path directoryPath) throws IOException {
-        if (!Files.exists(directoryPath) || !Files.isDirectory(directoryPath)) {
-            throw new IOException("Directory does not exist or is not a directory: " + directoryPath);
-        }
-        
-        List<Path> htmlFiles = Files.walk(directoryPath)
-                .filter(Files::isRegularFile)
-                .filter(path -> {
-                    String fileName = path.toString().toLowerCase();
-                    return fileName.endsWith(".html") || fileName.endsWith(".htm");
-                })
-                .collect(Collectors.toList());
-        
-        List<Future<Document>> futures = new ArrayList<>();
-        
-        // Submit tasks to the executor service
-        for (Path filePath : htmlFiles) {
-            futures.add(executorService.submit(() -> {
-                try {
-                    String content = Files.readString(filePath, StandardCharsets.UTF_8);
-                    // Simple HTML to text conversion (a more sophisticated parser would be better in production)
-                    String textContent = content.replaceAll("<[^>]*>", "");
-                    String fileName = filePath.getFileName().toString();
-                    String id = fileName; // Use file name as ID for stability
-                    
-                    return new Document(id, fileName, textContent, filePath);
-                } catch (IOException e) {
-                    System.err.println("Error loading HTML document: " + filePath + ": " + e.getMessage());
-                    return null;
-                }
-            }));
-        }
-        
-        // Collect results
-        List<Document> documents = new ArrayList<>();
-        for (Future<Document> future : futures) {
-            try {
-                Document document = future.get();
-                if (document != null) {
-                    documents.add(document);
-                }
-            } catch (Exception e) {
-                System.err.println("Error retrieving HTML document: " + e.getMessage());
-            }
-        }
-        
-        return documents;
     }
     
     /**
